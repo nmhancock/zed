@@ -1,7 +1,6 @@
 package jsonlexer
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -27,14 +26,14 @@ const (
 )
 
 type Lexer struct {
-	br  *bufio.Reader
+	br  io.ByteScanner
 	buf []byte
 	err error
 }
 
-func New(br *bufio.Reader) *Lexer {
+func New(bs io.ByteScanner) *Lexer {
 	return &Lexer{
-		br:  br,
+		bs:  bs,
 		buf: make([]byte, 0, 128),
 	}
 }
@@ -50,7 +49,7 @@ func (l *Lexer) Err() error {
 func (l *Lexer) Token() Token {
 	l.buf = l.buf[:1]
 	for {
-		c, err := l.br.ReadByte()
+		c, err := l.bs.ReadByte()
 		if err != nil {
 			l.err = err
 			return TokenErr
@@ -91,7 +90,7 @@ func (l *Lexer) Token() Token {
 
 func (l *Lexer) readLiteral(s string, t Token) Token {
 	for i := range s {
-		c, err := l.br.ReadByte()
+		c, err := l.bs.ReadByte()
 		if err != nil {
 			l.err = err
 			return TokenErr
@@ -101,13 +100,13 @@ func (l *Lexer) readLiteral(s string, t Token) Token {
 			return TokenErr
 		}
 	}
-	c, err := l.br.ReadByte()
+	c, err := l.bs.ReadByte()
 	if err != nil {
 		if err == io.EOF {
 			return t
 		}
 	}
-	if err := l.br.UnreadByte(); err != nil {
+	if err := l.bs.UnreadByte(); err != nil {
 		l.err = err
 		return TokenErr
 	}
@@ -131,7 +130,7 @@ func isValueBoundaryChar(c byte) bool {
 func (l *Lexer) readNumber(c byte) Token {
 	l.buf = append(l.buf[:0], c)
 	for {
-		c, err := l.br.ReadByte()
+		c, err := l.bs.ReadByte()
 		if err != nil {
 			if err == io.EOF {
 				return TokenNumber
@@ -140,7 +139,7 @@ func (l *Lexer) readNumber(c byte) Token {
 			return TokenErr
 		}
 		if !isNumberChar(c) {
-			if err := l.br.UnreadByte(); err != nil {
+			if err := l.bs.UnreadByte(); err != nil {
 				l.err = err
 				return TokenErr
 			}
@@ -157,7 +156,7 @@ func isNumberChar(c byte) bool {
 func (l *Lexer) readString() Token {
 	var escape bool
 	for {
-		c, err := l.br.ReadByte()
+		c, err := l.bs.ReadByte()
 		if err != nil {
 			l.err = err
 			return TokenErr
