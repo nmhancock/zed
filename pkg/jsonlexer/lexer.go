@@ -26,7 +26,7 @@ const (
 )
 
 type Lexer struct {
-	br  io.ByteScanner
+	bs  io.ByteScanner
 	buf []byte
 	err error
 }
